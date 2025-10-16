@@ -44,6 +44,13 @@ export { db };
 
 export async function initDb() {
   try {
+    console.log('Starting database initialization...');
+    console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+    
+    // Test connection first
+    const testResult = await db.query('SELECT NOW()');
+    console.log('Database connection test successful:', testResult.rows[0]);
+    
     // Create tables
     await run(`
       CREATE TABLE IF NOT EXISTS users (
