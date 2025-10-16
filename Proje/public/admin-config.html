@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Çark Ayarları</title>
+  <script defer src="/admin-config.js"></script>
+  <style>
+    body { margin:0; min-height:100vh; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(1200px 600px at 50% 10%, #eef3ff, #dde7fb, #cfe0fc); }
+    .wrap { max-width: 920px; margin: 20px auto; padding: 16px; }
+    .top { display:flex; align-items:center; justify-content: space-between; margin-bottom: 12px; }
+    .card { background:#fff; border-radius:12px; box-shadow: 0 6px 24px rgba(0,0,0,0.08); padding: 14px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 10px 8px; font-size: 14px; }
+    th { background:#f8fafc; text-align:left; position: sticky; top: 0; }
+    input[type=text], input[type=number] { width:100%; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; }
+    .actions { display:flex; gap:8px; align-items:center; }
+    .btn { padding:10px 12px; border:none; border-radius: 8px; color:#fff; cursor:pointer; }
+    .btn.save { background:#16a34a; }
+    .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+    .back { background:#0ea5e9; }
+    .reload { background:#2563eb; }
+    .err { color:#b42318; min-height: 18px; margin-top: 6px; }
+    .muted { color:#6b7280; font-size: 13px; }
+    
+    .section-toggle {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 16px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      font-size: 15px;
+      transition: background 0.2s;
+    }
+
+    .section-toggle:hover {
+      background: #e5e7eb;
+    }
+
+    /* Tab container for smooth transitions */
+    .tab-container {
+      position: relative;
+      overflow: hidden;
+      min-height: 400px;
+    }
+
+    .tab-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tab-content.active {
+      position: relative;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .tab-content.slide-out-left {
+      transform: translateX(-100%);
+    }
+
+    .tab-content.slide-in-right {
+      transform: translateX(100%);
+    }
+
+    .add-button {
+      padding: 10px 12px;
+      background: #16a34a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+
+    .add-button:hover {
+      background: #15803d;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      margin: 2px;
+    }
+
+    input[type="text"] {
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn:not([disabled]) {
+      opacity: 1;
+    }
+
+    /* Image Management Popup Styles */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .popup-header h3 {
+      margin: 0;
+      color: #1f2937;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      color: #374151;
+    }
+
+    .popup-body {
+      padding: 20px;
+    }
+
+    .upload-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+
+    .upload-section h4 {
+      margin: 0 0 15px 0;
+      color: #374151;
+    }
+
+    .upload-section input[type="file"] {
+      margin-bottom: 15px;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      width: 100%;
+    }
+
+    .images-section h4 {
+      margin: 0 0 15px 0;
+      color: #374151;
+    }
+
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    .image-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      background: white;
+    }
+
+    .image-item img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .image-item .image-name {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+
+    .image-item .image-url {
+      font-size: 11px;
+      color: #3b82f6;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+
+    .image-item .delete-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .image-item .view-btn {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-right: 5px;
+    }
+
+    /* Image Viewer Popup Styles */
+    .image-viewer-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .image-viewer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .image-viewer-header h3 {
+      margin: 0;
+      color: #1f2937;
+    }
+
+    .image-viewer-body {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .image-viewer-info {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+
+    .image-viewer-info p {
+      margin: 0 0 10px 0;
+      color: #374151;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 14px;
+    }
+  </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <h2>Ayarlar</h2>
+        <div class="actions">
+          <button id="backBtn" class="btn back">Admin'e Dön</button>
+          <button id="imageBtn" class="btn" style="background:#8b5cf6;">Resim Yönetimi</button>
+          <button id="reloadBtn" class="btn reload">Yenile</button>
+        </div>
+      </div>
+
+      <div class="section-toggle" id="sectionToggle">
+        <span id="sectionName">Çark Bölümleri</span>
+      </div>
+
+      <!-- Tab Container -->
+      <div class="tab-container">
+        <!-- Çark Bölümleri Tablosu -->
+        <div id="wheelSection" class="tab-content active">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div class="muted">Ağırlıkları yüzde (0-100) olarak girin. Toplamları 100 olmalı.</div>
+          <button id="saveBtn" class="btn save">Kaydet</button>
+        </div>
+        <div id="err" class="err"></div>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Etiket</th>
+                <th>Mesaj</th>
+                <th>Ağırlık (%)</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        </div>
+
+        <!-- Kampanyalar Tablosu -->
+        <div id="campaignSection" class="tab-content">
+        <button id="addNewCampaign" class="add-button">Yeni Kampanya Ekle</button>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>Başlık</th>
+                <th>URL</th>
+                <th>Aktif</th>
+                <th>İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="campaignRows"></tbody>
+          </table>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Management Popup -->
+    <div id="imagePopup" class="popup-overlay" style="display: none;">
+      <div class="popup-content">
+        <div class="popup-header">
+          <h3>Resim Yönetimi</h3>
+          <button id="closeImagePopup" class="close-btn">&times;</button>
+        </div>
+        <div class="popup-body">
+          <div class="upload-section">
+            <h4>Yeni Resim Yükle</h4>
+            <input type="file" id="imageInput" accept="image/*" />
+            <button id="uploadBtn" class="btn save">Yükle</button>
+          </div>
+          <div class="images-section">
+            <h4>Mevcut Resimler</h4>
+            <div id="imagesList" class="images-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Viewer Popup -->
+    <div id="imageViewerPopup" class="popup-overlay" style="display: none;">
+      <div class="image-viewer-content">
+        <div class="image-viewer-header">
+          <h3 id="imageViewerTitle">Resim Görüntüleyici</h3>
+          <button id="closeImageViewer" class="close-btn">&times;</button>
+        </div>
+        <div class="image-viewer-body">
+          <img id="viewerImage" src="" alt="" style="max-width: 100%; max-height: 80vh; object-fit: contain;" />
+          <div class="image-viewer-info">
+            <p id="imageViewerUrl"></p>
+            <button id="copyImageUrl" class="btn" style="background:#3b82f6;">Adı Kopyala</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+  </html>
+
+

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Çark</title>
+  <script defer src="/wheel.js"></script>
+  <style>
+    body { 
+      margin:0; 
+      min-height:100vh; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
+      background: radial-gradient(1200px 600px at 50% 20%, #f8fafc, #f1f5f9, #e2e8f0);
+    }
+    .wrap { position:relative; display:flex; flex-direction:column; align-items:center; gap:16px; padding: 20px; }
+    canvas { 
+      width: min(94vw, 640px); 
+      height: auto; 
+      aspect-ratio: 1 / 1; 
+      filter: drop-shadow(0 8px 20px rgba(0,0,0,0.1)); 
+      transition: transform 0.2s ease; 
+    }
+    .wrap:hover canvas { 
+      transform: translateY(-2px); 
+    }
+    button { 
+      padding:14px 20px; 
+      border-radius: 12px; 
+      border:none; 
+      background: #6366f1; 
+      color:#fff; 
+      cursor:pointer; 
+      font-size: 16px; 
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); 
+      transition: all 0.2s ease; 
+    }
+    button:hover { 
+      transform: translateY(-1px); 
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4); 
+    }
+    button:active { 
+      transform: translateY(0); 
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3); 
+    }
+    #spinBtn.pulse { animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.08); } }
+    .modal { 
+      position: fixed; 
+      inset:0; 
+      display:none; 
+      align-items:center; 
+      justify-content:center; 
+      background: rgba(0,0,0,0.4); 
+      padding: 16px; 
+    }
+    .modal .box { 
+      background: #fff; 
+      padding:20px; 
+      border-radius:12px; 
+      max-width: 520px; 
+      width: 100%; 
+      text-align:center; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .actions { display:flex; gap:10px; justify-content:center; margin-top: 12px; }
+    .actions button { 
+      background: #6366f1; 
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 500;
+    }
+    .actions .copy { 
+      background: #8b5cf6; 
+    }
+    .actions .close { 
+      background: #ef4444; 
+    }
+    /* confetti canvas over content */
+    #confetti { position: fixed; inset: 0; pointer-events: none; }
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #f8fafc;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 100;
+      border-radius: 0 0 12px 12px;
+    }
+    
+    .campaign-button {
+      padding: 8px 16px;
+      background: #6366f1;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+    
+    .campaign-button:hover {
+      background: #4f46e5;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+    
+    .campaign-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+    
+    /* Adjust body padding to account for navbar */
+    body {
+      padding-top: 60px;
+    }
+
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background: #ffffff;
+      min-width: 200px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      padding: 8px 0;
+      z-index: 101;
+    }
+
+    .dropdown-content.active {
+      display: block;
+      animation: slideDown 0.2s ease;
+    }
+
+    .campaign-item {
+      display: block;
+      padding: 10px 16px;
+      color: #374151;
+      text-decoration: none;
+      transition: background 0.2s ease;
+      font-weight: 500;
+    }
+
+    .campaign-item:hover {
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+
+    @keyframes slideDown {
+      from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0); 
+      }
+    }
+  </style>
+  </head>
+  <body>
+    <div class="navbar">
+      <div class="dropdown">
+        <a href="#" class="campaign-button" id="campaignBtn">Kampanyalar için tıkla</a>
+        <div class="dropdown-content" id="campaignDropdown">
+          <!-- Kampanyalar buraya dinamik olarak eklenecek -->
+        </div>
+      </div>
+    </div>
+    <div class="wrap">
+      <canvas id="wheel" width="500" height="500"></canvas>
+      <button id="spinBtn" class="pulse">Çevir</button>
+    </div>
+    <div id="modal" class="modal">
+      <div class="box">
+        <p id="alreadySpunMsg" style="color: #ef4444; font-weight: 600; margin-bottom: 12px; display: none;">Çarkı zaten çevirdin!</p>
+        <h3 id="resultTitle"></h3>
+        <p id="resultMsg"></p>
+        <div class="actions">
+          <button id="copyBtn" class="copy">Kopyala</button>
+          <button id="shareBtn">Paylaş</button>
+          <button id="closeModal" class="close">Kapat</button>
+        </div>
+      </div>
+    </div>
+    <canvas id="confetti"></canvas>
+  </body>
+  </html>
+
+
