@@ -37,13 +37,13 @@ function renderRows(list) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${s.section_index + 1}</td>
-      <td><input type="text" value="${s.label}" data-id="${s.id}" data-key="label" /></td>
-      <td><input type="text" value="${s.message}" data-id="${s.id}" data-key="message" /></td>
-      <td><input type="number" min="0" max="100" step="0.1" value="${(Number(s.weight) * 100).toFixed(1)}" data-id="${s.id}" data-key="weightPercent" /></td>
+      <td><textarea data-index="${s.section_index}" data-key="label">${s.label}</textarea></td>
+      <td><textarea data-index="${s.section_index}" data-key="message">${s.message}</textarea></td>
+      <td><input type="number" min="0" max="100" step="0.1" value="${(Number(s.weight) * 100).toFixed(1)}" data-index="${s.section_index}" data-key="weightPercent" /></td>
     `;
     rowsTbody.appendChild(tr);
   }
-  rowsTbody.querySelectorAll('input').forEach(i => {
+  rowsTbody.querySelectorAll('input, textarea').forEach(i => {
     i.addEventListener('input', () => {
       dirty = true;
       saveBtn.disabled = false;
@@ -80,30 +80,56 @@ async function loadSections() {
 
 async function saveSections() {
   errEl.textContent = '';
-  const inputs = rowsTbody.querySelectorAll('input');
+  const inputs = rowsTbody.querySelectorAll('input, textarea');
   const map = new Map();
+  
   inputs.forEach(i => {
-    const id = Number(i.getAttribute('data-id'));
+    const index = i.getAttribute('data-index');
     const key = i.getAttribute('data-key');
-    if (!map.has(id)) map.set(id, { id });
+    
+    // Skip if no data-index (shouldn't happen but safety check)
+    if (!index || !key) return;
+    
+    const numericIndex = Number(index);
+    if (!map.has(numericIndex)) map.set(numericIndex, { section_index: numericIndex });
+    
     if (key === 'weightPercent') {
-      map.get(id)['weight'] = Math.max(0, Math.min(100, Number(i.value) || 0)) / 100;
+      map.get(numericIndex)['weight'] = Math.max(0, Math.min(100, Number(i.value) || 0)) / 100;
     } else {
-      map.get(id)[key] = i.type === 'number' ? Number(i.value) : i.value;
+      map.get(numericIndex)[key] = i.type === 'number' ? Number(i.value) : i.value;
     }
   });
+  
   const sections = Array.from(map.values());
+  
+  // Debug: Log what we're sending
+  console.log('Saving sections:', sections);
+  console.log('Sections count:', sections.length);
+  console.log('Section indexes:', sections.map(s => s.section_index));
+  
+  if (sections.length === 0) {
+    errEl.textContent = 'Kaydedilecek veri bulunamadı!';
+    return;
+  }
+  
   const totalPercent = sections.reduce((a,b) => a + ((Number(b.weight) || 0) * 100), 0);
   if (Math.abs(totalPercent - 100) > 0.1) {
     errEl.textContent = `Ağırlıkların toplamı 100 olmalı. Şu an: ${totalPercent.toFixed(1)}`;
     return;
   }
+  
   const res = await fetch('/api/admin/wheel-sections', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ sections })
   });
-  if (!res.ok) { errEl.textContent = 'Kaydedilemedi'; return; }
+  
+  if (!res.ok) { 
+    const errorText = await res.text();
+    errEl.textContent = `Kaydedilemedi: ${res.status} - ${errorText}`; 
+    return; 
+  }
+  
   await loadSections();
   dirty = false;
   saveBtn.disabled = true;
@@ -602,10 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentSection = 'wheel';
 
 
-  // Original save button functionality
-  saveBtn.addEventListener('click', () => {
-    saveSections(); // Only handles wheel data
-  });
+  // Save button functionality is already handled above (line 210)
 
   // Sayfa yüklendiğinde kampanyaları yükle
   loadCampaigns();

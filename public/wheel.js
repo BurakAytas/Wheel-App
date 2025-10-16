@@ -128,19 +128,25 @@ function draw() {
   ctx.stroke();
 }
 
-draw();
-
-// Load dynamic labels from backend
+// Load dynamic labels from backend first, then draw
 (async function loadLabels() {
   try {
     const res = await fetch('/api/user/wheel-sections?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) return; // keep defaults
+    if (!res.ok) {
+      // If API fails, use defaults and draw
+      draw();
+      return;
+    }
     const data = await res.json();
     if (data && Array.isArray(data.labels)) {
       setSections(data.labels);
+    } else {
+      // If no data, use defaults and draw
+      draw();
     }
   } catch (_) {
-    // ignore, keep defaults
+    // If error, use defaults and draw
+    draw();
   }
 })();
 

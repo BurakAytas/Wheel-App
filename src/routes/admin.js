@@ -90,14 +90,28 @@ adminRouter.post('/wheel-sections', requireAdmin, async (req, res) => {
   try {
     const { sections } = req.body; // [{id, label, message, weight}]
     if (!Array.isArray(sections)) return res.status(400).json({ error: 'Geçersiz veri' });
-    for (const s of sections) {
-      if (typeof s.id !== 'number') continue;
+    
+    console.log('📥 Received sections:', sections.length);
+    console.log('📥 Section indexes:', sections.map(s => s.section_index));
+    
+    // First, delete all existing sections
+    await run('DELETE FROM wheel_sections');
+    
+    // Then insert all sections with new IDs
+    for (let i = 0; i < sections.length; i++) {
+      const s = sections[i];
       const weight = Math.max(0, Number(s.weight) || 0);
-      await run(`UPDATE wheel_sections SET label = $1, message = $2, weight = $3 WHERE id = $4`, [String(s.label || ''), String(s.message || ''), weight, s.id]);
+      console.log(`📝 Inserting section ${i}: index=${s.section_index}, label="${s.label}", message="${s.message}", weight=${weight}`);
+      await run(
+        'INSERT INTO wheel_sections (section_index, label, message, weight) VALUES ($1, $2, $3, $4)',
+        [s.section_index, String(s.label || ''), String(s.message || ''), weight]
+      );
     }
+    
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: 'Sunucu hatası' });
+    console.error('❌ Error updating wheel sections:', e);
+    res.status(500).json({ error: 'Sunucu hatası: ' + e.message });
   }
 });
 
