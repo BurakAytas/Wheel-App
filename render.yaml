@@ -12,6 +12,8 @@ services:
         fromDatabase:
           name: wheel-db
           property: connectionString
+    dependsOn:
+      - wheel-db
   - type: pserv
     name: wheel-db
     env: postgresql
