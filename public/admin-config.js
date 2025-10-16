@@ -638,25 +638,64 @@ async function debugDatabase() {
   }
 }
 
+// Create wheel sections function
+async function createWheelSections() {
+  try {
+    const res = await fetch('/api/admin/create-wheel-sections', {
+      method: 'POST',
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      console.log('✅ Wheel sections created:', data);
+      alert(data.message + ' (' + data.count + ' bölüm)');
+      
+      // Reload the sections after creation
+      await loadSections();
+    } else {
+      const error = await res.text();
+      console.error('❌ Failed to create wheel sections:', error);
+      alert('Hata: ' + error);
+    }
+  } catch (error) {
+    console.error('❌ Error creating wheel sections:', error);
+    alert('Bağlantı hatası: ' + error.message);
+  }
+}
+
 // Initialize after authentication check
 async function init() {
   requireAuth();
   if (token) {
     await loadSections();
     
-    // Add debug button
+    // Add buttons after a short delay
     setTimeout(() => {
-      const debugBtn = document.createElement('button');
-      debugBtn.textContent = 'Debug Database';
-      debugBtn.className = 'btn';
-      debugBtn.style.background = '#dc2626';
-      debugBtn.style.marginTop = '10px';
-      debugBtn.style.marginLeft = '10px';
-      debugBtn.onclick = debugDatabase;
-      
       const actions = document.querySelector('.actions');
       if (actions) {
+        // Debug button
+        const debugBtn = document.createElement('button');
+        debugBtn.textContent = 'Debug Database';
+        debugBtn.className = 'btn';
+        debugBtn.style.background = '#dc2626';
+        debugBtn.style.marginTop = '10px';
+        debugBtn.style.marginLeft = '10px';
+        debugBtn.onclick = debugDatabase;
         actions.appendChild(debugBtn);
+        
+        // Create wheel sections button
+        const createBtn = document.createElement('button');
+        createBtn.textContent = 'Çark Bölümlerini Oluştur';
+        createBtn.className = 'btn';
+        createBtn.style.background = '#16a34a';
+        createBtn.style.marginTop = '10px';
+        createBtn.style.marginLeft = '10px';
+        createBtn.onclick = createWheelSections;
+        actions.appendChild(createBtn);
       }
     }, 1000);
   }

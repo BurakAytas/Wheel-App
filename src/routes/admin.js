@@ -259,5 +259,53 @@ adminRouter.get('/debug/wheel-sections', requireAdmin, async (req, res) => {
   }
 });
 
+// Create default wheel sections
+adminRouter.post('/create-wheel-sections', requireAdmin, async (req, res) => {
+  try {
+    console.log('🔄 Creating default wheel sections...');
+    
+    // Check if sections already exist
+    const existingSections = await all('SELECT COUNT(*) as count FROM wheel_sections');
+    console.log('📊 Existing sections count:', existingSections[0].count);
+    
+    if (existingSections[0].count > 0) {
+      console.log('ℹ️ Wheel sections already exist');
+      return res.json({ message: 'Çark bölümleri zaten mevcut', count: existingSections[0].count });
+    }
+    
+    // Create default wheel sections
+    const defaultSections = [
+      { label: 'Bölüm 1', message: 'Tebrikler!', weight: 0.1 },
+      { label: 'Bölüm 2', message: 'Harika!', weight: 0.1 },
+      { label: 'Bölüm 3', message: 'Mükemmel!', weight: 0.1 },
+      { label: 'Bölüm 4', message: 'Süper!', weight: 0.1 },
+      { label: 'Bölüm 5', message: 'Bravo!', weight: 0.1 },
+      { label: 'Bölüm 6', message: 'Harika!', weight: 0.1 },
+      { label: 'Bölüm 7', message: 'Tebrikler!', weight: 0.1 },
+      { label: 'Bölüm 8', message: 'Mükemmel!', weight: 0.1 },
+      { label: 'Bölüm 9', message: 'Süper!', weight: 0.1 },
+      { label: 'Bölüm 10', message: 'Tebrikler!', weight: 0.1 }
+    ];
+
+    for (let i = 0; i < defaultSections.length; i++) {
+      const section = defaultSections[i];
+      await run(
+        'INSERT INTO wheel_sections (section_index, label, message, weight) VALUES ($1, $2, $3, $4)',
+        [i, section.label, section.message, section.weight]
+      );
+      console.log(`✅ Created section ${i + 1}: ${section.label}`);
+    }
+    
+    console.log('✅ All wheel sections created successfully');
+    res.json({ 
+      message: 'Varsayılan çark bölümleri başarıyla oluşturuldu!', 
+      count: defaultSections.length 
+    });
+  } catch (e) {
+    console.error('❌ Error creating wheel sections:', e);
+    res.status(500).json({ error: 'Sunucu hatası: ' + e.message });
+  }
+});
+
 
 
