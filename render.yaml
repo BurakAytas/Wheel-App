@@ -8,3 +8,11 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wheel-db
+          property: connectionString
+  - type: pserv
+    name: wheel-db
+    env: postgresql
+    plan: free
