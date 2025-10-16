@@ -13,7 +13,15 @@
     table { width: 100%; border-collapse: collapse; }
     th, td { border-bottom: 1px solid #e5e7eb; padding: 10px 8px; font-size: 14px; }
     th { background:#f8fafc; text-align:left; position: sticky; top: 0; }
-    input[type=text], input[type=number] { width:100%; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; }
+    input[type=text], input[type=number] { 
+      width:100%; 
+      padding:8px 10px; 
+      border:1px solid #e5e7eb; 
+      border-radius:8px; 
+      box-sizing: border-box;
+      font-size: 14px;
+      line-height: 1.4;
+    }
     .actions { display:flex; gap:8px; align-items:center; }
     .btn { padding:10px 12px; border:none; border-radius: 8px; color:#fff; cursor:pointer; }
     .btn.save { background:#16a34a; }
@@ -93,6 +101,8 @@
     input[type="text"] {
       border: 1px solid #d1d5db;
       font-size: 14px;
+      box-sizing: border-box;
+      line-height: 1.4;
     }
 
     input[type="checkbox"] {
@@ -186,6 +196,8 @@
       border: 1px solid #d1d5db;
       border-radius: 6px;
       width: 100%;
+      box-sizing: border-box;
+      font-size: 14px;
     }
 
     .images-section h4 {

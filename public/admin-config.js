@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Original save button functionality
   saveBtn.addEventListener('click', () => {
-    saveWheelData(); // Only handles wheel data
+    saveSections(); // Only handles wheel data
   });
 
   // Sayfa yüklendiğinde kampanyaları yükle
