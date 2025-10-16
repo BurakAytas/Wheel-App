@@ -53,14 +53,26 @@ function renderRows(list) {
 
 async function loadSections() {
   errEl.textContent = '';
-  const res = await fetch('/api/admin/wheel-sections', { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) {
-    if (res.status === 401) return (window.location.href = '/admin');
-    errEl.textContent = 'Yüklenemedi';
-    return;
+  console.log('Loading sections with token:', token ? 'Present' : 'Missing');
+  
+  try {
+    const res = await fetch('/api/admin/wheel-sections', { headers: { Authorization: `Bearer ${token}` } });
+    console.log('Response status:', res.status);
+    
+    if (!res.ok) {
+      if (res.status === 401) return (window.location.href = '/admin');
+      const errorText = await res.text();
+      console.error('Error response:', errorText);
+      errEl.textContent = `Yüklenemedi: ${res.status} - ${errorText}`;
+      return;
+    }
+    const data = await res.json();
+    console.log('Loaded sections:', data);
+    renderRows(data);
+  } catch (error) {
+    console.error('Fetch error:', error);
+    errEl.textContent = `Bağlantı hatası: ${error.message}`;
   }
-  const data = await res.json();
-  renderRows(data);
 }
 
 async function saveSections() {
@@ -593,7 +605,14 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCampaigns();
 });
 
-requireAuth();
-loadSections();
+// Initialize after authentication check
+async function init() {
+  requireAuth();
+  if (token) {
+    await loadSections();
+  }
+}
+
+init();
 
 
