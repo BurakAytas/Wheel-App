@@ -69,6 +69,15 @@ adminRouter.post('/spins/bulk-delete', requireAdmin, async (req, res) => {
 adminRouter.get('/wheel-sections', requireAdmin, async (req, res) => {
   try {
     const rows = await all(`SELECT id, section_index, label, message, weight FROM wheel_sections ORDER BY section_index ASC`);
+    
+    // Disable caching
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
+    
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: 'Sunucu hatası' });

@@ -56,7 +56,13 @@ async function loadSections() {
   console.log('Loading sections with token:', token ? 'Present' : 'Missing');
   
   try {
-    const res = await fetch('/api/admin/wheel-sections', { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`/api/admin/wheel-sections?t=${Date.now()}`, { 
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      } 
+    });
     console.log('Response status:', res.status);
     
     if (!res.ok) {
@@ -174,7 +180,10 @@ async function saveCampaign(title, link) {
   }
 }
 
-reloadBtn.addEventListener('click', loadSections);
+reloadBtn.addEventListener('click', () => {
+  // Force reload with cache busting
+  loadSections();
+});
 saveBtn.addEventListener('click', saveSections);
 saveBtn.disabled = true;
 
