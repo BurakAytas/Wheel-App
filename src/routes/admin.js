@@ -68,7 +68,9 @@ adminRouter.post('/spins/bulk-delete', requireAdmin, async (req, res) => {
 // Get wheel sections
 adminRouter.get('/wheel-sections', requireAdmin, async (req, res) => {
   try {
+    console.log('🔍 Fetching wheel sections...');
     const rows = await all(`SELECT id, section_index, label, message, weight FROM wheel_sections ORDER BY section_index ASC`);
+    console.log('📊 Found wheel sections:', rows.length, rows);
     
     // Disable caching
     res.set({
@@ -80,6 +82,7 @@ adminRouter.get('/wheel-sections', requireAdmin, async (req, res) => {
     
     res.json(rows);
   } catch (e) {
+    console.error('❌ Error fetching wheel sections:', e);
     res.status(500).json({ error: 'Sunucu hatası' });
   }
 });
@@ -225,6 +228,34 @@ adminRouter.post('/spins/:id/approve', requireAdmin, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// Debug endpoint to check database state
+adminRouter.get('/debug/wheel-sections', requireAdmin, async (req, res) => {
+  try {
+    console.log('🔍 Debug: Checking wheel sections...');
+    
+    // Check if table exists and get count
+    const countResult = await all('SELECT COUNT(*) as count FROM wheel_sections');
+    console.log('📊 Total sections in database:', countResult[0].count);
+    
+    // Get all sections
+    const allSections = await all('SELECT * FROM wheel_sections ORDER BY section_index ASC');
+    console.log('📋 All sections:', allSections);
+    
+    // Get sections for admin panel (same query as the main endpoint)
+    const adminSections = await all('SELECT id, section_index, label, message, weight FROM wheel_sections ORDER BY section_index ASC');
+    console.log('⚙️ Admin sections:', adminSections);
+    
+    res.json({
+      totalCount: countResult[0].count,
+      allSections: allSections,
+      adminSections: adminSections
+    });
+  } catch (e) {
+    console.error('❌ Debug error:', e);
+    res.status(500).json({ error: 'Debug error: ' + e.message });
   }
 });
 

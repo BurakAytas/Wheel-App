@@ -614,11 +614,51 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCampaigns();
 });
 
+// Debug function to check database
+async function debugDatabase() {
+  try {
+    const res = await fetch(`/api/admin/debug/wheel-sections?t=${Date.now()}`, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Cache-Control': 'no-cache'
+      }
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      console.log('🔍 Debug Data:', data);
+      alert(`Database Debug:\nTotal Count: ${data.totalCount}\nAdmin Sections: ${data.adminSections.length}\n\nCheck console for details.`);
+    } else {
+      const error = await res.text();
+      alert('Debug Error: ' + error);
+    }
+  } catch (error) {
+    console.error('Debug error:', error);
+    alert('Debug Error: ' + error.message);
+  }
+}
+
 // Initialize after authentication check
 async function init() {
   requireAuth();
   if (token) {
     await loadSections();
+    
+    // Add debug button
+    setTimeout(() => {
+      const debugBtn = document.createElement('button');
+      debugBtn.textContent = 'Debug Database';
+      debugBtn.className = 'btn';
+      debugBtn.style.background = '#dc2626';
+      debugBtn.style.marginTop = '10px';
+      debugBtn.style.marginLeft = '10px';
+      debugBtn.onclick = debugDatabase;
+      
+      const actions = document.querySelector('.actions');
+      if (actions) {
+        actions.appendChild(debugBtn);
+      }
+    }, 1000);
   }
 }
 

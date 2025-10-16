@@ -18,7 +18,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Initialize database
-initDb().catch(console.error);
+initDb()
+  .then(() => {
+    console.log('✅ Database initialized successfully');
+  })
+  .catch((error) => {
+    console.error('❌ Database initialization failed:', error);
+  });
 
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
