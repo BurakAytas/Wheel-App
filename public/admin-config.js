@@ -53,7 +53,6 @@ function renderRows(list) {
 
 async function loadSections() {
   errEl.textContent = '';
-  console.log('Loading sections with token:', token ? 'Present' : 'Missing');
   
   try {
     const res = await fetch(`/api/admin/wheel-sections?t=${Date.now()}`, { 
@@ -63,18 +62,16 @@ async function loadSections() {
         'Pragma': 'no-cache'
       } 
     });
-    console.log('Response status:', res.status);
     
     if (!res.ok) {
       if (res.status === 401) return (window.location.href = '/admin');
       const errorText = await res.text();
-      console.error('Error response:', errorText);
       errEl.textContent = `Yüklenemedi: ${res.status} - ${errorText}`;
       return;
     }
     const data = await res.json();
-    console.log('Loaded sections:', data);
     renderRows(data);
+    updateCreateButton(data.length === 0);
   } catch (error) {
     console.error('Fetch error:', error);
     errEl.textContent = `Bağlantı hatası: ${error.message}`;
@@ -614,27 +611,29 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCampaigns();
 });
 
-// Debug function to check database
-async function debugDatabase() {
-  try {
-    const res = await fetch(`/api/admin/debug/wheel-sections?t=${Date.now()}`, {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Cache-Control': 'no-cache'
-      }
-    });
+
+// Update create button visibility
+function updateCreateButton(show) {
+  let createBtn = document.getElementById('createWheelSectionsBtn');
+  
+  if (show && !createBtn) {
+    // Create button if it doesn't exist
+    createBtn = document.createElement('button');
+    createBtn.id = 'createWheelSectionsBtn';
+    createBtn.textContent = 'Çark Bölümlerini Oluştur';
+    createBtn.className = 'btn';
+    createBtn.style.background = '#16a34a';
+    createBtn.style.marginTop = '10px';
+    createBtn.style.marginLeft = '10px';
+    createBtn.onclick = createWheelSections;
     
-    if (res.ok) {
-      const data = await res.json();
-      console.log('🔍 Debug Data:', data);
-      alert(`Database Debug:\nTotal Count: ${data.totalCount}\nAdmin Sections: ${data.adminSections.length}\n\nCheck console for details.`);
-    } else {
-      const error = await res.text();
-      alert('Debug Error: ' + error);
+    const actions = document.querySelector('.actions');
+    if (actions) {
+      actions.appendChild(createBtn);
     }
-  } catch (error) {
-    console.error('Debug error:', error);
-    alert('Debug Error: ' + error.message);
+  } else if (!show && createBtn) {
+    // Remove button if it exists
+    createBtn.remove();
   }
 }
 
@@ -651,18 +650,15 @@ async function createWheelSections() {
     
     if (res.ok) {
       const data = await res.json();
-      console.log('✅ Wheel sections created:', data);
       alert(data.message + ' (' + data.count + ' bölüm)');
       
       // Reload the sections after creation
       await loadSections();
     } else {
       const error = await res.text();
-      console.error('❌ Failed to create wheel sections:', error);
       alert('Hata: ' + error);
     }
   } catch (error) {
-    console.error('❌ Error creating wheel sections:', error);
     alert('Bağlantı hatası: ' + error.message);
   }
 }
@@ -672,32 +668,6 @@ async function init() {
   requireAuth();
   if (token) {
     await loadSections();
-    
-    // Add buttons after a short delay
-    setTimeout(() => {
-      const actions = document.querySelector('.actions');
-      if (actions) {
-        // Debug button
-        const debugBtn = document.createElement('button');
-        debugBtn.textContent = 'Debug Database';
-        debugBtn.className = 'btn';
-        debugBtn.style.background = '#dc2626';
-        debugBtn.style.marginTop = '10px';
-        debugBtn.style.marginLeft = '10px';
-        debugBtn.onclick = debugDatabase;
-        actions.appendChild(debugBtn);
-        
-        // Create wheel sections button
-        const createBtn = document.createElement('button');
-        createBtn.textContent = 'Çark Bölümlerini Oluştur';
-        createBtn.className = 'btn';
-        createBtn.style.background = '#16a34a';
-        createBtn.style.marginTop = '10px';
-        createBtn.style.marginLeft = '10px';
-        createBtn.onclick = createWheelSections;
-        actions.appendChild(createBtn);
-      }
-    }, 1000);
   }
 }
 

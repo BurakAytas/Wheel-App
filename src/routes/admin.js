@@ -68,9 +68,7 @@ adminRouter.post('/spins/bulk-delete', requireAdmin, async (req, res) => {
 // Get wheel sections
 adminRouter.get('/wheel-sections', requireAdmin, async (req, res) => {
   try {
-    console.log('🔍 Fetching wheel sections...');
     const rows = await all(`SELECT id, section_index, label, message, weight FROM wheel_sections ORDER BY section_index ASC`);
-    console.log('📊 Found wheel sections:', rows.length, rows);
     
     // Disable caching
     res.set({
@@ -231,45 +229,13 @@ adminRouter.post('/spins/:id/approve', requireAdmin, async (req, res) => {
   }
 });
 
-// Debug endpoint to check database state
-adminRouter.get('/debug/wheel-sections', requireAdmin, async (req, res) => {
-  try {
-    console.log('🔍 Debug: Checking wheel sections...');
-    
-    // Check if table exists and get count
-    const countResult = await all('SELECT COUNT(*) as count FROM wheel_sections');
-    console.log('📊 Total sections in database:', countResult[0].count);
-    
-    // Get all sections
-    const allSections = await all('SELECT * FROM wheel_sections ORDER BY section_index ASC');
-    console.log('📋 All sections:', allSections);
-    
-    // Get sections for admin panel (same query as the main endpoint)
-    const adminSections = await all('SELECT id, section_index, label, message, weight FROM wheel_sections ORDER BY section_index ASC');
-    console.log('⚙️ Admin sections:', adminSections);
-    
-    res.json({
-      totalCount: countResult[0].count,
-      allSections: allSections,
-      adminSections: adminSections
-    });
-  } catch (e) {
-    console.error('❌ Debug error:', e);
-    res.status(500).json({ error: 'Debug error: ' + e.message });
-  }
-});
-
 // Create default wheel sections
 adminRouter.post('/create-wheel-sections', requireAdmin, async (req, res) => {
   try {
-    console.log('🔄 Creating default wheel sections...');
-    
     // Check if sections already exist
     const existingSections = await all('SELECT COUNT(*) as count FROM wheel_sections');
-    console.log('📊 Existing sections count:', existingSections[0].count);
     
     if (existingSections[0].count > 0) {
-      console.log('ℹ️ Wheel sections already exist');
       return res.json({ message: 'Çark bölümleri zaten mevcut', count: existingSections[0].count });
     }
     
@@ -293,10 +259,8 @@ adminRouter.post('/create-wheel-sections', requireAdmin, async (req, res) => {
         'INSERT INTO wheel_sections (section_index, label, message, weight) VALUES ($1, $2, $3, $4)',
         [i, section.label, section.message, section.weight]
       );
-      console.log(`✅ Created section ${i + 1}: ${section.label}`);
     }
     
-    console.log('✅ All wheel sections created successfully');
     res.json({ 
       message: 'Varsayılan çark bölümleri başarıyla oluşturuldu!', 
       count: defaultSections.length 
