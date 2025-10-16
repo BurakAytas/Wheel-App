@@ -8,10 +8,10 @@ userRouter.post('/register', async (req, res) => {
   try {
     const { firstName, lastName, email } = req.body;
     if (!firstName || !lastName || !email) return res.status(400).json({ error: 'Tüm alanlar zorunlu' });
-    const existing = await get(`SELECT id FROM users WHERE LOWER(email) = LOWER(?)`, [email]);
+    const existing = await get(`SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, [email]);
     if (existing) return res.status(409).json({ error: 'E-posta zaten kayıtlı' });
-    const result = await run(`INSERT INTO users (first_name, last_name, email) VALUES (?, ?, ?)`, [firstName.trim(), lastName.trim(), email.trim()]);
-    res.json({ userId: result.lastID });
+    const result = await run(`INSERT INTO users (first_name, last_name, email) VALUES ($1, $2, $3) RETURNING id`, [firstName.trim(), lastName.trim(), email.trim()]);
+    res.json({ userId: result.rows[0].id });
   } catch (e) {
     res.status(500).json({ error: 'Sunucu hatası' });
   }
@@ -40,9 +40,9 @@ userRouter.post('/spin', async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId gerekli' });
-    const user = await get(`SELECT * FROM users WHERE id = ?`, [userId]);
+    const user = await get(`SELECT * FROM users WHERE id = $1`, [userId]);
     if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
-    const already = await get(`SELECT * FROM spins WHERE user_id = ?`, [userId]);
+    const already = await get(`SELECT * FROM spins WHERE user_id = $1`, [userId]);
     if (already) {
       return res.status(403).json({ 
         error: 'Çark sadece 1 kez çevrilebilir',
@@ -57,12 +57,12 @@ userRouter.post('/spin', async (req, res) => {
     const sec = sections[idx];
 
     const result = await run(
-      `INSERT INTO spins (user_id, section_index, section_label, section_message) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO spins (user_id, section_index, section_label, section_message) VALUES ($1, $2, $3, $4) RETURNING id`,
       [userId, sec.index, sec.label, sec.message]
     );
 
     res.json({
-      spinId: result.lastID,
+      spinId: result.rows[0].id,
       sectionIndex: sec.index,
       sectionLabel: sec.label,
       sectionMessage: sec.message,

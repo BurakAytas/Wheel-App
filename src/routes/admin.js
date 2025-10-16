@@ -57,7 +57,7 @@ adminRouter.post('/spins/bulk-delete', requireAdmin, async (req, res) => {
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Silinecek kayıt yok' });
     const uniq = Array.from(new Set(ids.map(n => Number(n)).filter(n => Number.isFinite(n))));
     if (uniq.length === 0) return res.status(400).json({ error: 'Geçersiz id listesi' });
-    const placeholders = uniq.map(() => '?').join(',');
+    const placeholders = uniq.map((_, i) => `$${i + 1}`).join(',');
     await run(`DELETE FROM spins WHERE id IN (${placeholders})`, uniq);
     res.json({ ok: true, deleted: uniq.length });
   } catch (e) {
@@ -83,7 +83,7 @@ adminRouter.post('/wheel-sections', requireAdmin, async (req, res) => {
     for (const s of sections) {
       if (typeof s.id !== 'number') continue;
       const weight = Math.max(0, Number(s.weight) || 0);
-      await run(`UPDATE wheel_sections SET label = ?, message = ?, weight = ? WHERE id = ?`, [String(s.label || ''), String(s.message || ''), weight, s.id]);
+      await run(`UPDATE wheel_sections SET label = $1, message = $2, weight = $3 WHERE id = $4`, [String(s.label || ''), String(s.message || ''), weight, s.id]);
     }
     res.json({ ok: true });
   } catch (e) {
@@ -108,11 +108,11 @@ adminRouter.post('/campaigns', requireAdmin, async (req, res) => {
     if (!title) return res.status(400).json({ error: 'Başlık gerekli' });
     
     const result = await run(
-      `INSERT INTO campaigns (title, link, is_active) VALUES (?, ?, ?)`,
+      `INSERT INTO campaigns (title, link, is_active) VALUES ($1, $2, $3) RETURNING id`,
       [String(title), String(link || ''), is_active ? 1 : 0]
     );
     
-    res.json({ id: result.lastID });
+    res.json({ id: result.rows[0].id });
   } catch (e) {
     res.status(500).json({ error: 'Sunucu hatası' });
   }
@@ -125,7 +125,7 @@ adminRouter.put('/campaigns/:id', requireAdmin, async (req, res) => {
     const { title, link, is_active } = req.body;
     if (!title) return res.status(400).json({ error: 'Başlık gerekli' });
     await run(
-      `UPDATE campaigns SET title = ?, link = ?, is_active = ? WHERE id = ?`,
+      `UPDATE campaigns SET title = $1, link = $2, is_active = $3 WHERE id = $4`,
       [String(title), String(link || ''), is_active ? 1 : 0, id]
     );
     res.json({ ok: true });
@@ -138,7 +138,7 @@ adminRouter.put('/campaigns/:id', requireAdmin, async (req, res) => {
 adminRouter.delete('/campaigns/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    await run(`DELETE FROM campaigns WHERE id = ?`, [id]);
+    await run(`DELETE FROM campaigns WHERE id = $1`, [id]);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Sunucu hatası' });
@@ -210,9 +210,9 @@ adminRouter.post('/spins/:id/approve', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { approved } = req.body;
-    const spin = await get(`SELECT * FROM spins WHERE id = ?`, [id]);
+    const spin = await get(`SELECT * FROM spins WHERE id = $1`, [id]);
     if (!spin) return res.status(404).json({ error: 'Kayıt bulunamadı' });
-    await run(`UPDATE spins SET approved = ? WHERE id = ?`, [approved ? 1 : 0, id]);
+    await run(`UPDATE spins SET approved = $1 WHERE id = $2`, [approved ? 1 : 0, id]);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Sunucu hatası' });

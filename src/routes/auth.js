@@ -11,7 +11,7 @@ authRouter.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gerekli' });
-    const admin = await get(`SELECT * FROM admins WHERE username = ?`, [username]);
+    const admin = await get(`SELECT * FROM admins WHERE username = $1`, [username]);
     if (!admin) return res.status(401).json({ error: 'Geçersiz bilgiler' });
     const ok = await bcrypt.compare(password, admin.password);
     if (!ok) return res.status(401).json({ error: 'Geçersiz bilgiler' });
