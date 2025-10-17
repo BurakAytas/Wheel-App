@@ -13,9 +13,8 @@ userRouter.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Tüm alanlar zorunlu' });
     }
     
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Email format validation (simplified)
+    if (!email.includes('@') || !email.includes('.')) {
       return res.status(400).json({ error: 'Geçerli bir e-posta adresi girin' });
     }
     
