@@ -7,13 +7,37 @@ export const userRouter = express.Router();
 userRouter.post('/register', async (req, res) => {
   try {
     const { firstName, lastName, email } = req.body;
-    if (!firstName || !lastName || !email) return res.status(400).json({ error: 'Tüm alanlar zorunlu' });
+    
+    // Input validation
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: 'Tüm alanlar zorunlu' });
+    }
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Geçerli bir e-posta adresi girin' });
+    }
+    
+    // Name length validation
+    if (firstName.trim().length < 2 || lastName.trim().length < 2) {
+      return res.status(400).json({ error: 'Ad ve soyad en az 2 karakter olmalı' });
+    }
+    
     const existing = await get(`SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, [email]);
-    if (existing) return res.status(409).json({ error: 'E-posta zaten kayıtlı' });
-    const result = await run(`INSERT INTO users (first_name, last_name, email) VALUES ($1, $2, $3) RETURNING id`, [firstName.trim(), lastName.trim(), email.trim()]);
+    if (existing) {
+      return res.status(409).json({ error: 'E-posta zaten kayıtlı' });
+    }
+    
+    const result = await run(
+      `INSERT INTO users (first_name, last_name, email) VALUES ($1, $2, $3) RETURNING id`, 
+      [firstName.trim(), lastName.trim(), email.trim().toLowerCase()]
+    );
+    
     res.json({ userId: result.rows[0].id });
-  } catch (e) {
-    res.status(500).json({ error: 'Sunucu hatası' });
+  } catch (error) {
+    console.error('Registration error:', error.message);
+    res.status(500).json({ error: 'Kayıt işlemi başarısız' });
   }
 });
 

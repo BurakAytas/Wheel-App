@@ -11,33 +11,30 @@ const configBtn = document.getElementById('configBtn');
 const deleteBtn = document.getElementById('deleteBtn');
 const selectAllCb = document.getElementById('selectAll');
 
-let token = localStorage.getItem('adminToken') || '';
+// Load utility functions
+const script = document.createElement('script');
+script.src = '/js/utils.js';
+document.head.appendChild(script);
 
-// Ensure initial visibility states
-if (loginDiv) loginDiv.style.display = '';
-if (panelDiv) panelDiv.style.display = 'none';
+script.onload = () => {
+  let token = localStorage.getItem('adminToken') || '';
 
-function setAuth(t) {
-  token = t;
-  if (t) localStorage.setItem('adminToken', t); else localStorage.removeItem('adminToken');
-}
+  // Ensure initial visibility states
+  if (loginDiv) loginDiv.style.display = '';
+  if (panelDiv) panelDiv.style.display = 'none';
 
-async function fetchSpins() {
-  const res = await fetch('/api/admin/spins', { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(txt || 'İstek başarısız');
+  function setAuth(t) {
+    token = t;
+    if (t) localStorage.setItem('adminToken', t); else localStorage.removeItem('adminToken');
   }
-  return res.json();
-}
 
-async function toggleApprove(id, approved) {
-  await fetch(`/api/admin/spins/${id}/approve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ approved })
-  });
-}
+  async function fetchSpins() {
+    return apiClient.get('/admin/spins', { Authorization: `Bearer ${token}` });
+  }
+
+  async function toggleApprove(id, approved) {
+    await apiClient.post(`/admin/spins/${id}/approve`, { approved }, { Authorization: `Bearer ${token}` });
+  }
 
 function renderRows(list) {
   rowsTbody.innerHTML = '';
@@ -84,22 +81,24 @@ async function showPanel() {
   }
 }
 
-if (loginBtn) loginBtn.addEventListener('click', async () => {
-  loginErr.textContent = '';
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username.value.trim(), password: password.value })
-    });
-    const data = await res.json();
-    if (!res.ok) { loginErr.textContent = data.error || 'Hata'; return; }
-    setAuth(data.token);
-    await showPanel();
-  } catch (e) {
-    loginErr.textContent = 'Sunucu hatası';
-  }
-});
+  if (loginBtn) loginBtn.addEventListener('click', async () => {
+    UIUtils.hideError(loginErr);
+    UIUtils.showLoading(loginBtn, 'Giriş yapılıyor...');
+    
+    try {
+      const data = await apiClient.post('/auth/login', {
+        username: username.value.trim(),
+        password: password.value
+      });
+      
+      setAuth(data.token);
+      await showPanel();
+    } catch (error) {
+      UIUtils.showError(loginErr, error.message || 'Giriş başarısız');
+    } finally {
+      UIUtils.hideLoading(loginBtn);
+    }
+  });
 
 if (token) {
   showPanel();
@@ -155,8 +154,9 @@ async function bulkDeleteSelected() {
   }
 }
 
-if (deleteBtn) {
-  deleteBtn.addEventListener('click', bulkDeleteSelected);
-}
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', bulkDeleteSelected);
+  }
+};
 
 

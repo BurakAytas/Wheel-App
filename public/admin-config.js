@@ -102,10 +102,7 @@ async function saveSections() {
   
   const sections = Array.from(map.values());
   
-  // Debug: Log what we're sending
-  console.log('Saving sections:', sections);
-  console.log('Sections count:', sections.length);
-  console.log('Section indexes:', sections.map(s => s.section_index));
+  // Validating sections data
   
   if (sections.length === 0) {
     errEl.textContent = 'Kaydedilecek veri bulunamadı!';
@@ -159,29 +156,7 @@ async function addCampaign() {
   }
 }
 
-// Kampanyaları yükle
-async function loadCampaigns() {
-  try {
-    const response = await fetch('/api/admin/campaigns');
-    if (!response.ok) throw new Error('Kampanyalar yüklenemedi');
-    
-    const campaigns = await response.json();
-    const tbody = document.getElementById('campaignRows');
-    tbody.innerHTML = '';
-    
-    campaigns.forEach((campaign, index) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${campaign.title}</td>
-        <td>${campaign.link || '-'}</td>
-      `;
-      tbody.appendChild(row);
-    });
-  } catch (error) {
-    console.error('Kampanyalar yüklenirken hata:', error);
-  }
-}
+// This function is defined later in the file, removing duplicate
 
 // Yeni kampanya ekle
 async function saveCampaign(title, link) {

@@ -6,37 +6,53 @@ dotenv.config();
 
 const { Pool } = pkg;
 
-// Create database connection
+// Create database connection with optimized pool settings
 const db = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/cark_uygulamasi',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+  maxUses: 7500, // Close (and replace) a connection after it has been used 7500 times
 });
 
-// Helper functions
+// Helper functions with better error handling
 export async function run(sql, params = []) {
+  const client = await db.connect();
   try {
-    const result = await db.query(sql, params);
+    const result = await client.query(sql, params);
     return result;
   } catch (err) {
-    throw err;
+    console.error('Database query error:', err.message);
+    throw new Error(`Database error: ${err.message}`);
+  } finally {
+    client.release();
   }
 }
 
 export async function get(sql, params = []) {
+  const client = await db.connect();
   try {
-    const result = await db.query(sql, params);
+    const result = await client.query(sql, params);
     return result.rows[0] || null;
   } catch (err) {
-    throw err;
+    console.error('Database query error:', err.message);
+    throw new Error(`Database error: ${err.message}`);
+  } finally {
+    client.release();
   }
 }
 
 export async function all(sql, params = []) {
+  const client = await db.connect();
   try {
-    const result = await db.query(sql, params);
+    const result = await client.query(sql, params);
     return result.rows;
   } catch (err) {
-    throw err;
+    console.error('Database query error:', err.message);
+    throw new Error(`Database error: ${err.message}`);
+  } finally {
+    client.release();
   }
 }
 
