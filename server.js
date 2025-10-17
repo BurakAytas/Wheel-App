@@ -26,7 +26,19 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https:"],
     },
   },
+  // Disable favicon check to prevent 404 errors
+  crossOriginEmbedderPolicy: false,
 }));
+
+// Handle favicon requests - serve from images folder
+app.get('/favicon.ico', (req, res) => {
+  const faviconPath = path.join(__dirname, 'public', 'images', 'luks.ico');
+  if (fs.existsSync(faviconPath)) {
+    res.sendFile(faviconPath);
+  } else {
+    res.status(204).end();
+  }
+});
 
 // Rate limiting
 const limiter = rateLimit({
