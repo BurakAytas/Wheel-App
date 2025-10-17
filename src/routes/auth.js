@@ -14,8 +14,11 @@ authRouter.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
+    console.log('Login attempt:', { username, password, usernameLength: username?.length, passwordLength: password?.length });
+    
     // Input validation
     if (!username || !password) {
+      console.log('Missing username or password');
       return res.status(400).json({ error: 'Kullanıcı adı ve şifre gerekli' });
     }
     
