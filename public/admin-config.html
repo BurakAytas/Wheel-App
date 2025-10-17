@@ -363,7 +363,11 @@
 
         <!-- Kampanyalar Tablosu -->
         <div id="campaignSection" class="tab-content">
-        <button id="addNewCampaign" class="add-button">Yeni Kampanya Ekle</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <button id="addNewCampaign" class="add-button">Yeni Kampanya Ekle</button>
+          <button id="saveCampaignsBtn" class="btn save" style="display: none;">Kaydet</button>
+        </div>
+        <div id="campaignErr" class="err"></div>
         <div class="card">
           <table>
             <thead>

@@ -8,6 +8,8 @@ const wheelSection = document.getElementById('wheelSection');
 const campaignSection = document.getElementById('campaignSection');
 const campaignRows = document.getElementById('campaignRows');
 const addNewCampaign = document.getElementById('addNewCampaign');
+const saveCampaignsBtn = document.getElementById('saveCampaignsBtn');
+const campaignErr = document.getElementById('campaignErr');
 const imageBtn = document.getElementById('imageBtn');
 const imagePopup = document.getElementById('imagePopup');
 const closeImagePopup = document.getElementById('closeImagePopup');
@@ -21,6 +23,7 @@ const imageViewerTitle = document.getElementById('imageViewerTitle');
 const imageViewerUrl = document.getElementById('imageViewerUrl');
 const copyImageUrl = document.getElementById('copyImageUrl');
 let dirty = false;
+let campaignDirty = false;
 let currentSection = 'wheel';
 
 let token = localStorage.getItem('adminToken') || '';
@@ -132,51 +135,6 @@ async function saveSections() {
   saveBtn.disabled = true;
 }
 
-// Kampanya ekleme fonksiyonu
-async function addCampaign() {
-  const title = document.getElementById('campaignTitle').value;
-  const link = document.getElementById('campaignLink').value;
-  
-  try {
-    const response = await fetch('/api/admin/campaigns', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, link })
-    });
-    
-    if (!response.ok) throw new Error('Kampanya eklenemedi');
-    
-    const campaign = await response.json();
-    addCampaignToTable(campaign);
-    document.getElementById('campaignTitle').value = '';
-    document.getElementById('campaignLink').value = '';
-  } catch (error) {
-    console.error('Hata:', error);
-    alert('Kampanya eklenirken bir hata oluştu');
-  }
-}
-
-// This function is defined later in the file, removing duplicate
-
-// Yeni kampanya ekle
-async function saveCampaign(title, link) {
-  try {
-    const response = await fetch('/api/admin/campaigns', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ title, link })
-    });
-
-    if (!response.ok) throw new Error('Kampanya eklenemedi');
-    
-    // Kampanyaları yeniden yükle
-    await loadCampaigns();
-  } catch (error) {
-    console.error('Kampanya eklenirken hata:', error);
-  }
-}
 
 reloadBtn.addEventListener('click', () => {
   // Force reload with cache busting
@@ -184,6 +142,12 @@ reloadBtn.addEventListener('click', () => {
 });
 saveBtn.addEventListener('click', saveSections);
 saveBtn.disabled = true;
+
+// Campaign save button event listener
+if (saveCampaignsBtn) {
+  saveCampaignsBtn.addEventListener('click', saveAllCampaigns);
+  saveCampaignsBtn.disabled = true;
+}
 
 // Ensure save button is visible by default (wheel sections tab)
 if (saveBtn) {
@@ -221,25 +185,31 @@ function slideToSection(targetSection) {
   }
 }
 
-// Section toggle functionality
-if (sectionToggle) {
-  sectionToggle.addEventListener('click', () => {
-    if (currentSection === 'wheel') {
-      // Slide to campaigns
-      slideToSection('campaign');
-      currentSection = 'campaign';
-      loadCampaigns();
-      // Hide save button for campaigns
-      saveBtn.style.display = 'none';
-    } else {
-      // Slide to wheel sections
-      slideToSection('wheel');
-      currentSection = 'wheel';
-      // Show save button for wheel sections
-      saveBtn.style.display = 'inline-block';
-    }
-  });
-}
+  // Section toggle functionality
+  if (sectionToggle) {
+    sectionToggle.addEventListener('click', () => {
+      if (currentSection === 'wheel') {
+        // Slide to campaigns
+        slideToSection('campaign');
+        currentSection = 'campaign';
+        loadCampaigns();
+        // Hide wheel save button, show campaign save button if needed
+        saveBtn.style.display = 'none';
+        if (campaignDirty && saveCampaignsBtn) {
+          saveCampaignsBtn.style.display = 'inline-block';
+        }
+      } else {
+        // Slide to wheel sections
+        slideToSection('wheel');
+        currentSection = 'wheel';
+        // Show wheel save button, hide campaign save button
+        saveBtn.style.display = 'inline-block';
+        if (saveCampaignsBtn) {
+          saveCampaignsBtn.style.display = 'none';
+        }
+      }
+    });
+  }
 
 // Campaign management
 async function loadCampaigns() {
@@ -258,11 +228,10 @@ function renderCampaigns(campaigns) {
   campaigns.forEach(c => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" value="${c.title}" data-id="${c.id}" data-field="title" onchange="markCampaignChanged(this)" /></td>
-      <td><input type="text" value="${c.link || ''}" data-id="${c.id}" data-field="link" onchange="markCampaignChanged(this)" /></td>
-      <td><input type="checkbox" ${c.is_active ? 'checked' : ''} data-id="${c.id}" data-field="is_active" onchange="markCampaignChanged(this)" /></td>
+      <td><input type="text" value="${c.title}" data-id="${c.id}" data-field="title" onchange="markCampaignChanged()" /></td>
+      <td><input type="text" value="${c.link || ''}" data-id="${c.id}" data-field="link" onchange="markCampaignChanged()" /></td>
+      <td><input type="checkbox" ${c.is_active ? 'checked' : ''} data-id="${c.id}" data-field="is_active" onchange="markCampaignChanged()" /></td>
       <td>
-        <button onclick="saveCampaign(${c.id})" class="btn save" id="saveBtn_${c.id}" disabled>Kaydet</button>
         <button onclick="deleteCampaign(${c.id})" class="btn" style="background:#ef4444;">Sil</button>
       </td>
     `;
@@ -271,89 +240,117 @@ function renderCampaigns(campaigns) {
 }
 
 // Mark campaign as changed and enable save button
-function markCampaignChanged(input) {
-  const id = input.getAttribute('data-id');
-  const saveBtn = document.getElementById(`saveBtn_${id}`);
-  if (saveBtn) {
-    saveBtn.disabled = false;
-    saveBtn.style.opacity = '1';
+function markCampaignChanged() {
+  campaignDirty = true;
+  if (saveCampaignsBtn) {
+    saveCampaignsBtn.disabled = false;
+    saveCampaignsBtn.style.display = 'inline-block';
   }
 }
 
-// Save individual campaign
-async function saveCampaign(id) {
-  const row = document.querySelector(`input[data-id="${id}"][data-field="title"]`).closest('tr');
-  const inputs = row.querySelectorAll('input');
-  const data = { id: Number(id) };
+// Save all campaigns
+async function saveAllCampaigns() {
+  campaignErr.textContent = '';
   
-  inputs.forEach(input => {
-    const field = input.getAttribute('data-field');
-    data[field] = input.type === 'checkbox' ? input.checked : input.value.trim();
+  const inputs = campaignRows.querySelectorAll('input');
+  const existingCampaigns = new Map();
+  const newCampaigns = [];
+  
+  inputs.forEach(i => {
+    const id = i.getAttribute('data-id');
+    const field = i.getAttribute('data-field');
+    const isNew = i.getAttribute('data-new') === 'true';
+    
+    if (isNew) {
+      // New campaign - group by row
+      const row = i.closest('tr');
+      const rowIndex = Array.from(campaignRows.children).indexOf(row);
+      if (!newCampaigns[rowIndex]) {
+        newCampaigns[rowIndex] = {};
+      }
+      newCampaigns[rowIndex][field] = i.type === 'checkbox' ? i.checked : i.value.trim();
+    } else {
+      // Existing campaign
+      const numericId = Number(id);
+      if (!existingCampaigns.has(numericId)) {
+        existingCampaigns.set(numericId, { id: numericId });
+      }
+      existingCampaigns.get(numericId)[field] = i.type === 'checkbox' ? i.checked : i.value.trim();
+    }
   });
   
-  if (!data.title) {
-    alert('Kampanya başlığı gerekli!');
-    return;
+  // Validate existing campaigns
+  for (const [id, data] of existingCampaigns) {
+    if (!data.title || data.title.trim() === '') {
+      campaignErr.textContent = `Kampanya ID ${id}: Başlık gerekli!`;
+      return;
+    }
+  }
+  
+  // Validate new campaigns
+  for (let i = 0; i < newCampaigns.length; i++) {
+    const data = newCampaigns[i];
+    if (data && (!data.title || data.title.trim() === '')) {
+      campaignErr.textContent = `Yeni kampanya ${i + 1}: Başlık gerekli!`;
+      return;
+    }
   }
   
   try {
-    const res = await fetch(`/api/admin/campaigns/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data)
-    });
-    
-    if (res.ok) {
-      const saveBtn = document.getElementById(`saveBtn_${id}`);
-      if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.style.opacity = '0.6';
-        saveBtn.textContent = 'Kaydedildi';
-        setTimeout(() => {
-          saveBtn.textContent = 'Kaydet';
-        }, 2000);
+    // Update existing campaigns
+    for (const [id, data] of existingCampaigns) {
+      const res = await fetch(`/api/admin/campaigns/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        campaignErr.textContent = `Kampanya ${id} kaydedilemedi: ${res.status} - ${errorText}`;
+        return;
       }
-    } else {
-      const errorText = await res.text();
-      alert(`Kampanya kaydedilemedi! Hata: ${res.status} - ${errorText}`);
+    }
+    
+    // Create new campaigns
+    for (const data of newCampaigns) {
+      if (data && data.title && data.title.trim() !== '') {
+        const res = await fetch('/api/admin/campaigns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(data)
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          campaignErr.textContent = `Yeni kampanya kaydedilemedi: ${res.status} - ${errorText}`;
+          return;
+        }
+      }
+    }
+    
+    // Success - reload campaigns and reset state
+    await loadCampaigns();
+    campaignDirty = false;
+    if (saveCampaignsBtn) {
+      saveCampaignsBtn.disabled = true;
+      saveCampaignsBtn.style.display = 'none';
     }
   } catch (e) {
-    alert('Hata oluştu: ' + e.message);
+    campaignErr.textContent = 'Hata oluştu: ' + e.message;
   }
 }
 
-async function saveCampaigns() {
-  const inputs = campaignRows.querySelectorAll('input');
-  const campaigns = [];
-  const map = new Map();
-  
-  inputs.forEach(i => {
-    const id = Number(i.getAttribute('data-id'));
-    const field = i.getAttribute('data-field');
-    if (!map.has(id)) map.set(id, { id });
-    map.get(id)[field] = i.type === 'checkbox' ? i.checked : i.value;
-  });
-  
-  for (const [id, data] of map) {
-    const res = await fetch(`/api/admin/campaigns/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) return;
-  }
-}
 
 async function addCampaign() {
   // Create a new row in the table
   const tbody = document.getElementById('campaignRows');
   const newRow = document.createElement('tr');
   newRow.innerHTML = `
-    <td><input type="text" placeholder="Kampanya başlığı" data-field="title" onchange="markNewCampaignChanged(this)" /></td>
-    <td><input type="text" placeholder="URL" data-field="link" onchange="markNewCampaignChanged(this)" /></td>
-    <td><input type="checkbox" checked data-field="is_active" onchange="markNewCampaignChanged(this)" /></td>
+    <td><input type="text" placeholder="Kampanya başlığı" data-field="title" data-new="true" onchange="markCampaignChanged()" /></td>
+    <td><input type="text" placeholder="URL" data-field="link" data-new="true" onchange="markCampaignChanged()" /></td>
+    <td><input type="checkbox" checked data-field="is_active" data-new="true" onchange="markCampaignChanged()" /></td>
     <td>
-      <button onclick="saveNewCampaign(this)" class="btn save" id="newSaveBtn" disabled>Kaydet</button>
       <button onclick="cancelNewCampaign(this)" class="btn" style="background:#6b7280;">İptal</button>
     </td>
   `;
@@ -364,51 +361,6 @@ async function addCampaign() {
   titleInput.focus();
 }
 
-// Mark new campaign as changed and enable save button
-function markNewCampaignChanged(input) {
-  const saveBtn = document.getElementById('newSaveBtn');
-  if (saveBtn) {
-    saveBtn.disabled = false;
-    saveBtn.style.opacity = '1';
-  }
-}
-
-async function saveNewCampaign(button) {
-  const row = button.closest('tr');
-  const inputs = row.querySelectorAll('input');
-  const data = {};
-  
-  inputs.forEach(input => {
-    const field = input.getAttribute('data-field');
-    data[field] = input.type === 'checkbox' ? input.checked : input.value.trim();
-  });
-  
-  if (!data.title) {
-    alert('Kampanya başlığı gerekli!');
-    return;
-  }
-  
-  try {
-    const res = await fetch('/api/admin/campaigns', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data)
-    });
-    
-    if (res.ok) {
-      button.disabled = true;
-      button.textContent = 'Kaydedildi';
-      setTimeout(() => {
-        loadCampaigns(); // Reload to show the saved campaign
-      }, 1000);
-    } else {
-      const errorText = await res.text();
-      alert(`Kampanya kaydedilemedi! Hata: ${res.status} - ${errorText}`);
-    }
-  } catch (e) {
-    alert('Hata oluştu: ' + e.message);
-  }
-}
 
 function cancelNewCampaign(button) {
   const row = button.closest('tr');
