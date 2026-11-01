@@ -35,14 +35,17 @@ Create a database and a `.env` file:
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/cark_uygulamasi
 JWT_SECRET=change-me
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=choose-a-strong-password
 PORT=3000
+CORS_ORIGIN=http://localhost:3000
 ```
 
 ```bash
 npm start
 ```
 
-Open `http://localhost:3000`. On first run a default admin account is created (`admin` / `admin123`). Change this password before any real use.
+Open `http://localhost:3000`. On startup an admin account is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD` if it does not exist yet. If these are unset, no admin is seeded (a warning is logged). See `.env.example`.
 
 ## Project structure
 

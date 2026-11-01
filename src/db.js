@@ -165,14 +165,20 @@ export async function initDb() {
       }
     }
 
-    // Check if admin exists
-    const existingAdmin = await get('SELECT id FROM admins WHERE username = $1', ['admin']);
-    if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      await run(
-        'INSERT INTO admins (username, password) VALUES ($1, $2)',
-        ['admin', hashedPassword]
-      );
+    // Seed the admin account from environment variables (no default credentials)
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminUsername || !adminPassword) {
+      console.warn('WARNING: ADMIN_USERNAME / ADMIN_PASSWORD not set, admin account was not seeded.');
+    } else {
+      const existingAdmin = await get('SELECT id FROM admins WHERE username = $1', [adminUsername]);
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        await run(
+          'INSERT INTO admins (username, password) VALUES ($1, $2)',
+          [adminUsername, hashedPassword]
+        );
+      }
     }
 
     console.log('Database initialized successfully');
