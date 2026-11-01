@@ -302,9 +302,10 @@ async function fetchCampaigns() {
         item.className = 'campaign-item';
         item.textContent = campaign.title;
         
-        if (campaign.link) {
+        if (campaign.link && /^https?:\/\//i.test(campaign.link)) {
           item.href = campaign.link;
           item.target = '_blank';
+          item.rel = 'noopener noreferrer';
         } else {
           item.style.color = '#999';
           item.style.cursor = 'default';

@@ -50,11 +50,11 @@ function renderRows(list) {
   for (const r of list) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="checkbox" class="row-select" data-id="${r.spin_id}" /></td>
-      <td>${r.first_name}</td>
-      <td>${r.last_name}</td>
-      <td>${r.email}</td>
-      <td>${r.section_label}</td>
+      <td><input type="checkbox" class="row-select" data-id="${escapeHtml(r.spin_id)}" /></td>
+      <td>${escapeHtml(r.first_name)}</td>
+      <td>${escapeHtml(r.last_name)}</td>
+      <td>${escapeHtml(r.email)}</td>
+      <td>${escapeHtml(r.section_label)}</td>
       <td><input type="checkbox" ${r.approved ? 'checked' : ''} /></td>
     `;
     const cb = tr.querySelector('input[type=checkbox]:not(.row-select)');

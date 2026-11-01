@@ -100,3 +100,13 @@ class UIUtils {
 
 // Make UIUtils globally available
 window.UIUtils = UIUtils;
+
+// Escape text for safe use inside HTML text and attribute values
+window.escapeHtml = function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};

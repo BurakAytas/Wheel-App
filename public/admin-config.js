@@ -39,10 +39,10 @@ function renderRows(list) {
   for (const s of list) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${s.section_index + 1}</td>
-      <td><textarea data-index="${s.section_index}" data-key="label">${s.label}</textarea></td>
-      <td><textarea data-index="${s.section_index}" data-key="message">${s.message}</textarea></td>
-      <td><input type="number" min="0" max="100" step="0.1" value="${(Number(s.weight) * 100).toFixed(1)}" data-index="${s.section_index}" data-key="weightPercent" /></td>
+      <td>${Number(s.section_index) + 1}</td>
+      <td><textarea data-index="${escapeHtml(s.section_index)}" data-key="label">${escapeHtml(s.label)}</textarea></td>
+      <td><textarea data-index="${escapeHtml(s.section_index)}" data-key="message">${escapeHtml(s.message)}</textarea></td>
+      <td><input type="number" min="0" max="100" step="0.1" value="${(Number(s.weight) * 100).toFixed(1)}" data-index="${escapeHtml(s.section_index)}" data-key="weightPercent" /></td>
     `;
     rowsTbody.appendChild(tr);
   }
@@ -228,13 +228,15 @@ function renderCampaigns(campaigns) {
   campaigns.forEach(c => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" value="${c.title}" data-id="${c.id}" data-field="title" onchange="markCampaignChanged()" /></td>
-      <td><input type="text" value="${c.link || ''}" data-id="${c.id}" data-field="link" onchange="markCampaignChanged()" /></td>
-      <td><input type="checkbox" ${c.is_active ? 'checked' : ''} data-id="${c.id}" data-field="is_active" onchange="markCampaignChanged()" /></td>
+      <td><input type="text" value="${escapeHtml(c.title)}" data-id="${escapeHtml(c.id)}" data-field="title" /></td>
+      <td><input type="text" value="${escapeHtml(c.link || '')}" data-id="${escapeHtml(c.id)}" data-field="link" /></td>
+      <td><input type="checkbox" ${c.is_active ? 'checked' : ''} data-id="${escapeHtml(c.id)}" data-field="is_active" /></td>
       <td>
-        <button onclick="deleteCampaign(${c.id})" class="btn" style="background:#ef4444;">Sil</button>
+        <button type="button" data-action="delete" class="btn" style="background:#ef4444;">Sil</button>
       </td>
     `;
+    tr.querySelectorAll('input').forEach(i => i.addEventListener('change', markCampaignChanged));
+    tr.querySelector('[data-action="delete"]').addEventListener('click', () => deleteCampaign(c.id));
     campaignRows.appendChild(tr);
   });
 }
@@ -347,13 +349,15 @@ async function addCampaign() {
   const tbody = document.getElementById('campaignRows');
   const newRow = document.createElement('tr');
   newRow.innerHTML = `
-    <td><input type="text" placeholder="Kampanya başlığı" data-field="title" data-new="true" onchange="markCampaignChanged()" /></td>
-    <td><input type="text" placeholder="URL" data-field="link" data-new="true" onchange="markCampaignChanged()" /></td>
-    <td><input type="checkbox" checked data-field="is_active" data-new="true" onchange="markCampaignChanged()" /></td>
+    <td><input type="text" placeholder="Kampanya başlığı" data-field="title" data-new="true" /></td>
+    <td><input type="text" placeholder="URL" data-field="link" data-new="true" /></td>
+    <td><input type="checkbox" checked data-field="is_active" data-new="true" /></td>
     <td>
-      <button onclick="cancelNewCampaign(this)" class="btn" style="background:#6b7280;">İptal</button>
+      <button type="button" data-action="cancel" class="btn" style="background:#6b7280;">İptal</button>
     </td>
   `;
+  newRow.querySelectorAll('input').forEach(i => i.addEventListener('change', markCampaignChanged));
+  newRow.querySelector('[data-action="cancel"]').addEventListener('click', (e) => cancelNewCampaign(e.currentTarget));
   tbody.appendChild(newRow);
   
   // Focus on the title input
@@ -501,18 +505,24 @@ function renderImages(images) {
     const item = document.createElement('div');
     item.className = 'image-item';
     item.innerHTML = `
-      <img src="/images/${image.filename}" alt="${image.filename}" />
-      <div class="image-name">${image.filename}</div>
-      <button class="view-btn" onclick="viewImage('${image.filename}')">Görüntüle</button>
-      <button class="delete-btn" onclick="deleteImage('${image.filename}')">Sil</button>
+      <img />
+      <div class="image-name"></div>
+      <button type="button" class="view-btn">Görüntüle</button>
+      <button type="button" class="delete-btn">Sil</button>
     `;
+    const img = item.querySelector('img');
+    img.src = `/images/${encodeURIComponent(image.filename)}`;
+    img.alt = image.filename;
+    item.querySelector('.image-name').textContent = image.filename;
+    item.querySelector('.view-btn').addEventListener('click', () => viewImage(image.filename));
+    item.querySelector('.delete-btn').addEventListener('click', () => deleteImage(image.filename));
     imagesList.appendChild(item);
   });
 }
 
 // View image in popup
 function viewImage(filename) {
-  const imageUrl = `/images/${filename}`;
+  const imageUrl = `/images/${encodeURIComponent(filename)}`;
   const directUrl = `${filename}`;
   
   viewerImage.src = imageUrl;
@@ -530,7 +540,7 @@ async function deleteImage(filename) {
   }
 
   try {
-    const res = await fetch(`/api/admin/images/${filename}`, {
+    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
