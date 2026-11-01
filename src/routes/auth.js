@@ -5,8 +5,11 @@ import { get } from '../db.js';
 
 export const authRouter = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.warn('⚠️  JWT_SECRET not set, using default. Please set JWT_SECRET in production!');
+export const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET must be set in production');
+  }
+  console.warn('WARNING: JWT_SECRET not set, using an insecure development default.');
   return 'dev-secret-change-in-production';
 })();
 
