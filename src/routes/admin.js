@@ -3,7 +3,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { all, get, run } from '../db.js';
+import { all, get, run, db } from '../db.js';
 import { requireAdmin } from './auth.js';
 
 export const adminRouter = express.Router();
@@ -106,20 +106,27 @@ adminRouter.post('/wheel-sections', requireAdmin, async (req, res) => {
     
     // Debug info removed for production
     
-    // First, delete all existing sections
-    await run('DELETE FROM wheel_sections');
-    
-    // Then insert all sections with new IDs
-    for (let i = 0; i < sections.length; i++) {
-      const s = sections[i];
-      const weight = Math.max(0, Number(s.weight) || 0);
-      // Inserting section data
-      await run(
-        'INSERT INTO wheel_sections (section_index, label, message, weight) VALUES ($1, $2, $3, $4)',
-        [s.section_index, String(s.label || ''), String(s.message || ''), weight]
-      );
+    // Replace all sections atomically: either everything is saved or nothing changes
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM wheel_sections');
+      for (let i = 0; i < sections.length; i++) {
+        const s = sections[i];
+        const weight = Math.max(0, Number(s.weight) || 0);
+        await client.query(
+          'INSERT INTO wheel_sections (section_index, label, message, weight) VALUES ($1, $2, $3, $4)',
+          [s.section_index, String(s.label || ''), String(s.message || ''), weight]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txErr;
+    } finally {
+      client.release();
     }
-    
+
     res.json({ ok: true });
   } catch (e) {
     console.error('❌ Error updating wheel sections:', e);
