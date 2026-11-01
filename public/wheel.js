@@ -200,15 +200,15 @@ function drawConfetti() {
 
 spinBtn.addEventListener('click', async () => {
   if (spinning) return;
-  const userId = sessionStorage.getItem('userId');
-  if (!userId) { window.location.href = '/'; return; }
+  const spinToken = sessionStorage.getItem('spinToken');
+  if (!spinToken) { window.location.href = '/'; return; }
   spinning = true;
   spinBtn.disabled = true;
   try {
     const res = await fetch('/api/user/spin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: Number(userId) })
+      body: JSON.stringify({ spinToken })
     });
     const data = await res.json();
     if (!res.ok) {

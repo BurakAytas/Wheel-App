@@ -1,7 +1,11 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { get, run, all } from '../db.js';
+import { JWT_SECRET } from './auth.js';
 
 export const userRouter = express.Router();
+
+const SPIN_TOKEN_TTL = '1h';
 
 // Registration: { firstName, lastName, email }
 userRouter.post('/register', async (req, res) => {
@@ -33,7 +37,10 @@ userRouter.post('/register', async (req, res) => {
       [firstName.trim(), lastName.trim(), email.trim().toLowerCase()]
     );
     
-    res.json({ userId: result.rows[0].id });
+    const userId = result.rows[0].id;
+    // Short-lived token proving this client registered; required for /spin
+    const spinToken = jwt.sign({ sub: userId, purpose: 'spin' }, JWT_SECRET, { expiresIn: SPIN_TOKEN_TTL });
+    res.json({ userId, spinToken });
   } catch (error) {
     console.error('Registration error:', error.message);
     res.status(500).json({ error: 'Kayıt işlemi başarısız' });
@@ -58,11 +65,19 @@ function weightedRandomIndex(w) {
   return w.length - 1;
 }
 
-// POST /api/user/spin { userId }
+// POST /api/user/spin { spinToken }
 userRouter.post('/spin', async (req, res) => {
   try {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId gerekli' });
+    const { spinToken } = req.body;
+    if (!spinToken) return res.status(401).json({ error: 'Geçersiz veya süresi dolmuş oturum' });
+    let userId;
+    try {
+      const payload = jwt.verify(spinToken, JWT_SECRET);
+      if (payload.purpose !== 'spin') throw new Error('wrong token purpose');
+      userId = payload.sub;
+    } catch (err) {
+      return res.status(401).json({ error: 'Geçersiz veya süresi dolmuş oturum' });
+    }
     const user = await get(`SELECT * FROM users WHERE id = $1`, [userId]);
     if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
     const already = await get(`SELECT * FROM spins WHERE user_id = $1`, [userId]);
@@ -79,10 +94,24 @@ userRouter.post('/spin', async (req, res) => {
     const idx = weightedRandomIndex(weights);
     const sec = sections[idx];
 
-    const result = await run(
-      `INSERT INTO spins (user_id, section_index, section_label, section_message) VALUES ($1, $2, $3, $4) RETURNING id`,
-      [userId, sec.index, sec.label, sec.message]
-    );
+    let result;
+    try {
+      result = await run(
+        `INSERT INTO spins (user_id, section_index, section_label, section_message) VALUES ($1, $2, $3, $4) RETURNING id`,
+        [userId, sec.index, sec.label, sec.message]
+      );
+    } catch (err) {
+      // Unique violation: a concurrent request already created this user's spin
+      if (err.code === '23505') {
+        const existing = await get(`SELECT * FROM spins WHERE user_id = $1`, [userId]);
+        return res.status(403).json({
+          error: 'Çark sadece 1 kez çevrilebilir',
+          sectionLabel: existing?.section_label,
+          sectionMessage: existing?.section_message
+        });
+      }
+      throw err;
+    }
 
     res.json({
       spinId: result.rows[0].id,
@@ -91,6 +120,7 @@ userRouter.post('/spin', async (req, res) => {
       sectionMessage: sec.message,
     });
   } catch (e) {
+    console.error('Spin error:', e.message);
     res.status(500).json({ error: 'Sunucu hatası' });
   }
 });

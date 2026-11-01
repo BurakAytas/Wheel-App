@@ -24,7 +24,9 @@ export async function run(sql, params = []) {
     return result;
   } catch (err) {
     console.error('Database query error:', err.message);
-    throw new Error(`Database error: ${err.message}`);
+    const wrapped = new Error(`Database error: ${err.message}`);
+    wrapped.code = err.code;
+    throw wrapped;
   } finally {
     client.release();
   }
@@ -37,7 +39,9 @@ export async function get(sql, params = []) {
     return result.rows[0] || null;
   } catch (err) {
     console.error('Database query error:', err.message);
-    throw new Error(`Database error: ${err.message}`);
+    const wrapped = new Error(`Database error: ${err.message}`);
+    wrapped.code = err.code;
+    throw wrapped;
   } finally {
     client.release();
   }
@@ -50,7 +54,9 @@ export async function all(sql, params = []) {
     return result.rows;
   } catch (err) {
     console.error('Database query error:', err.message);
-    throw new Error(`Database error: ${err.message}`);
+    const wrapped = new Error(`Database error: ${err.message}`);
+    wrapped.code = err.code;
+    throw wrapped;
   } finally {
     client.release();
   }
@@ -90,6 +96,9 @@ export async function initDb() {
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `);
+
+    // One spin per user, enforced by the database
+    await run('CREATE UNIQUE INDEX IF NOT EXISTS spins_user_id_unique ON spins (user_id)');
 
     await run(`
       CREATE TABLE IF NOT EXISTS admins (

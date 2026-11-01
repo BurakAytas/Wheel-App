@@ -33,6 +33,7 @@ btn.addEventListener('click', async () => {
       return;
     }
     sessionStorage.setItem('userId', String(data.userId));
+    sessionStorage.setItem('spinToken', data.spinToken);
     window.location.href = '/wheel.html';
   } catch (e) {
     errorEl.textContent = 'Sunucuya bağlanılamadı';
