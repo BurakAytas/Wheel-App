@@ -2,12 +2,22 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { all, get, run } from '../db.js';
 import { requireAdmin } from './auth.js';
 
 export const adminRouter = express.Router();
 
 // Configure multer for image uploads
+const IMAGES_DIR = path.join(process.cwd(), 'public', 'images');
+const ALLOWED_IMAGE_TYPES = {
+  '.jpg': ['image/jpeg'],
+  '.jpeg': ['image/jpeg'],
+  '.png': ['image/png'],
+  '.webp': ['image/webp'],
+  '.gif': ['image/gif']
+};
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(process.cwd(), 'public', 'images');
@@ -17,8 +27,9 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    // Keep original filename
-    cb(null, file.originalname);
+    // Random server-side name; the client-supplied name is never used
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${crypto.randomUUID()}${ext}`);
   }
 });
 
@@ -26,10 +37,12 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedMimes = ALLOWED_IMAGE_TYPES[ext];
+    if (allowedMimes && allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Sadece resim dosyaları yüklenebilir!'), false);
+      cb(new Error('Sadece jpg, jpeg, png, webp veya gif dosyaları yüklenebilir!'), false);
     }
   }
 });
@@ -110,7 +123,7 @@ adminRouter.post('/wheel-sections', requireAdmin, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('❌ Error updating wheel sections:', e);
-    res.status(500).json({ error: 'Sunucu hatası: ' + e.message });
+    res.status(500).json({ error: 'Sunucu hatası' });
   }
 });
 
@@ -178,10 +191,11 @@ adminRouter.post('/upload-image', requireAdmin, upload.single('image'), (req, re
     res.json({ 
       message: 'Resim başarıyla yüklendi',
       filename: req.file.filename,
-      url: `/${req.file.filename}`
+      url: `/images/${req.file.filename}`
     });
   } catch (e) {
-    res.status(500).json({ error: 'Resim yüklenemedi: ' + e.message });
+    console.error('Image upload error:', e);
+    res.status(500).json({ error: 'Resim yüklenemedi' });
   }
 });
 
@@ -214,9 +228,13 @@ adminRouter.get('/images', requireAdmin, (req, res) => {
 // Delete image
 adminRouter.delete('/images/:filename', requireAdmin, (req, res) => {
   try {
-    const { filename } = req.params;
-    const imagePath = path.join(process.cwd(), 'public', 'images', filename);
-    
+    const filename = path.basename(req.params.filename);
+    const imagePath = path.resolve(IMAGES_DIR, filename);
+
+    if (!imagePath.startsWith(path.resolve(IMAGES_DIR) + path.sep)) {
+      return res.status(400).json({ error: 'Geçersiz dosya adı' });
+    }
+
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
       res.json({ message: 'Resim silindi' });
@@ -280,7 +298,7 @@ adminRouter.post('/create-wheel-sections', requireAdmin, async (req, res) => {
     });
   } catch (e) {
     console.error('❌ Error creating wheel sections:', e);
-    res.status(500).json({ error: 'Sunucu hatası: ' + e.message });
+    res.status(500).json({ error: 'Sunucu hatası' });
   }
 });
 
