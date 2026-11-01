@@ -132,7 +132,7 @@ export async function initDb() {
 
     // Check if wheel_sections table has data
     const existingSections = await all('SELECT COUNT(*) as count FROM wheel_sections');
-    if (existingSections[0].count === 0) {
+    if (Number(existingSections[0].count) === 0) {
       // Insert default wheel sections (10 sections, weights 0-1)
       const defaultSections = [
         { label: 'Bölüm 1', message: 'Tebrikler!', weight: 0.1 },
@@ -158,7 +158,7 @@ export async function initDb() {
 
     // Check if campaigns table has data
     const existingCampaigns = await all('SELECT COUNT(*) as count FROM campaigns');
-    if (existingCampaigns[0].count === 0) {
+    if (Number(existingCampaigns[0].count) === 0) {
       // Insert default campaigns
       const defaultCampaigns = [
         { title: 'Kampanya 1', link: 'https://example.com/1', is_active: 1 },

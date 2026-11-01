@@ -273,8 +273,9 @@ adminRouter.post('/create-wheel-sections', requireAdmin, async (req, res) => {
     // Check if sections already exist
     const existingSections = await all('SELECT COUNT(*) as count FROM wheel_sections');
     
-    if (existingSections[0].count > 0) {
-      return res.json({ message: 'Çark bölümleri zaten mevcut', count: existingSections[0].count });
+    const existingCount = Number(existingSections[0].count);
+    if (existingCount > 0) {
+      return res.json({ message: 'Çark bölümleri zaten mevcut', count: existingCount });
     }
     
     // Create default wheel sections
