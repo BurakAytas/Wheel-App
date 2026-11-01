@@ -47,12 +47,15 @@ npm start
 
 Open `http://localhost:3000`. On startup an admin account is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD` if it does not exist yet. If these are unset, no admin is seeded (a warning is logged). See `.env.example`.
 
+Environment variables: `DATABASE_URL`, `JWT_SECRET` (required in production), `ADMIN_USERNAME` / `ADMIN_PASSWORD` (admin seed), `PORT`, `CORS_ORIGIN` (comma-separated allowed origins; same-origin only when empty). Login and registration are rate limited to 10 requests per minute per IP.
+
 ## Project structure
 
 ```
 server.js           Express server
 src/db.js           Database connection and table setup
 src/routes/         auth, user and admin API routes
+src/middleware/     in-memory rate limiter
 public/             HTML, CSS and JavaScript for the wheel and admin pages
 render.yaml         Render deployment config
 ```
@@ -61,8 +64,8 @@ render.yaml         Render deployment config
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/user/register` | Register a user |
-| POST | `/api/user/spin` | Spin the wheel |
+| POST | `/api/user/register` | Register a user, returns a short-lived `spinToken` |
+| POST | `/api/user/spin` | Spin the wheel (requires `spinToken`, once per user) |
 | GET | `/api/user/wheel-sections` | Get wheel sections |
 | GET | `/api/user/campaigns` | Get active campaigns |
 | POST | `/api/auth/login` | Admin login |
