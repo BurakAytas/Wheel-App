@@ -8,11 +8,15 @@ import { initDb, db } from './src/db.js';
 import { authRouter } from './src/routes/auth.js';
 import { userRouter } from './src/routes/user.js';
 import { adminRouter } from './src/routes/admin.js';
+import { rateLimit } from './src/middleware/rateLimit.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Behind a reverse proxy (e.g. Render) so req.ip is the real client IP
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 app.use(cors({
   origin: true,
   credentials: true,
@@ -30,6 +34,11 @@ initDb()
   .catch((error) => {
     console.error('❌ Database initialization failed:', error);
   });
+
+// Brute-force / abuse protection (10 requests per minute per IP)
+const limiter = rateLimit({ windowMs: 60_000, max: 10 });
+app.use('/api/auth/login', limiter);
+app.use('/api/user/register', limiter);
 
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
